@@ -34,7 +34,7 @@ graph LR
 |-------|------|------------|
 | **Advisor** | Makes decisions, creates constraints, writes specs | Touches code |
 | **Human** | Reviews output, passes files, approves changes | Skips review |
-| **Executor** | Reads files, writes code, reports state | Makes decisions |
+| **Executor** | Reads files, writes code, reports state | Makes architectual decisions |
 
 The Advisor and Executor never communicate directly. All information passes through files the human manually moves between them. This is the mechanism that prevents drift.
 
