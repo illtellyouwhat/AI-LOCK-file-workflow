@@ -1,6 +1,6 @@
 # Lock File Workflow: Complete Technical Narrative
 
-**Project:** Automation Architect Website Redesign & Migration  
+**Project:** Client Website Redesign & Migration  
 **Challenge:** Migrate React/Vite to Astro + redesign for SEO — without JavaScript knowledge  
 **Outcome:** 99% implementation accuracy, zero breaking changes, full client handoff including the methodology
 
@@ -25,7 +25,7 @@
 
 ### What Was Asked
 
-I had been working with Automation Architect on various freelance projects. As those wrapped, the principal mentioned a site he'd prototyped in Lovable.dev — visually polished, but generic. Compared to competitors, it read like a brochure rather than a credibility document.
+I had been working with a client on various freelance projects. As those wrapped, the principal mentioned a site he'd prototyped in Lovable.dev. It was visually polished, but generic. Compared to competitors, it read like a brochure rather than a credibility document.
 
 The original ask: add a blog section.
 
@@ -53,7 +53,7 @@ This decision is the origin of the Lock File Workflow.
 
 ## 2. First Principle: Establish Ground Truth Before Touching Anything
 
-From 25 years of physical fabrication: the foundation determines everything built on top. Get it crooked, and every layer that follows is crooked too.
+From 25 years of physical fabrication I learned that  the foundation determines everything built on top. Get it crooked, and every layer that follows is flawed.
 
 Before making any changes to the site, I needed to understand exactly what existed and what it should become.
 
@@ -70,7 +70,22 @@ This step was for me, not the AI. It forced me to surface my own designer intuit
 
 With my own assessment in hand, I asked the AI for a comprehensive analysis. The prompt mattered:
 
-> "Analyze this website comprehensively. Provide detailed assessment based on current business best practices, research-backed recommendations, and how answer engines are affecting site structure and discoverability. Explain all trade-offs. Cite sources."
+>**Deliberate Over-Instruction Template**
+
+```
+[YOUR ANALYSIS REQUEST]
+
+Requirements for your response:
+- Do NOT summarize or compress. I need exhaustive depth, not executive summary.
+- For each point, expand with: implementation details, edge cases, failure modes, historical context, counterarguments
+- When you identify a risk or tradeoff, explain the second-order consequences
+- If you mention a best practice, explain when it doesn't apply
+- Prioritize completeness over brevity - I will do my own compression later
+
+Minimum length: [SPECIFY - e.g., "1500 words" or "5 detailed paragraphs per section"]
+
+```
+
 
 What came back: a 2,000+ word analysis with specific, prioritized recommendations and links backing each claim.
 
@@ -92,7 +107,7 @@ Where the model caught something I missed — update my understanding.
 
 First task: port React/Vite to Astro.
 
-Astro was the right call for content-heavy sites — markdown-based, better for blog and case study management, easier for a non-JavaScript client to update later.
+Astro was the right call for content-heavy sites:  markdown-based, better for blog and case study management, easier for a non-JavaScript client to update later.
 
 The migration itself went cleanly. I broke it into small, well-defined prompts, ran them sequentially, and verified at each step.
 
@@ -181,53 +196,65 @@ Contents: the workflow rules, file hierarchy, reading order, and the single most
 
 One file, loaded once per session, primes the executor consistently.
 
+This is essentially what the claude.md files do in repo directories I just came to a similar conclusion and applied it slightly different.
+
 ---
 
 ## 5. The Refinement Day: Building the Feedback Loop
 
 After several successful iterations, new problems emerged:
 
-- Files accumulating with unclear purposes
+- Files accumulating from each phase sometimes multiple copies or revisions
 - Hard to track what changed when
 - Advisor chat losing context of actual current state
-- Manual archaeology needed to remember what had been implemented last session
 
 **Decision:** Take half a day off implementation to fix the system itself.
 
 ### File Naming Convention
 
+Files split into two groups based on who owns them.
+
+**Advisor-owned files** — created and maintained by the planning agent:
 ```
-LOCK-[domain].md                    # Immutable constraints
-SPEC-[phase-name].md                # Implementation instructions
-PROMPT-[tool]-header.md             # Executor session primer
-PROMPT-generate-[type]-inventory.md # Instructions for state capture
-HISTORY-executive-timeline.md       # Append-only project log
-INVENTORY-[type]-[date].md          # Current state snapshot
-CHANGELOG-[date]-[gitN].md         # Change record keyed to commit hash
+LOCK-[domain].md       — Immutable constraints per domain
+SPEC-[phase-name].md   — Implementation instructions for one phase
+HISTORY-executive-timeline.md — Append-only project log; stays with the Advisor
+```
+
+**Executor-owned files** — generated by the implementation agent:
+```
+INVENTORY-[type]-[date].md      — Current state snapshot; Advisor reads, never edits
+CHANGELOG-[date]-[gitN].md      — Change record keyed to commit hash
+```
+
+**Files created by the Advisor that live with the Executor:**
+```
+PROMPT-[tool]-header.md              — Session primer; Advisor writes it once, Executor loads it every session
+PROMPT-generate-[type]-inventory.md  — Instructions for state capture
+PROMPT-changelog.md                  — Instructions for generating the change record
+00-START-HERE.md                     — Project context and reading order
 ```
 
 Every file's purpose is legible from its name alone.
 
 ### The Changelog
 
-Problem: without a forensic record, debugging required reading the entire codebase.
+The changelog wasn't created because debugging required reading the entire codebase. It was created to add a second layer of tracking on top of git; git diffs can be useful.  However .md files are more efficient for the model and can conserve tokens so I added that as a layer. Having a plain-language forensic record meant that if one method of finding a problem wasn't working, there was another. In practice it was never needed for debugging. Though it exists as a reliable fallback, and that's enough reason to keep it.
 
-Solution: After each implementation phase, pass `PROMPT-changelog.md` to the executor. It generates:
+After each implementation phase, pass `PROMPT-changelog.md` to the executor. It generates:
 
 - Git commit hash
 - Every file modified, with line numbers
 - What changed in each file
 - Why (reference to the spec)
 
-Keying to line numbers meant that when something broke later, I could go directly to the change rather than searching.
-
 ### The Inventory
 
-Problem: the Advisor chat was losing context of what had actually been built. It was planning next steps based on what *should* exist rather than what *did* exist.
+Problem: the Advisor chat was losing context of what had actually been built. It was planning next steps based on what it thought needed to be done rather than what already existed.
 
-Solution: After each phase, the executor generates `INVENTORY-[date].md` — a present-tense description of the current state of the project. Not a changelog. A snapshot.
+Solution: after each phase, the executor generates `INVENTORY-[date].md`:  A present-tense description of the current state of the project. sort of like a DOM in web dev.
 
-The Advisor reads the inventory before planning any next phase. It reads what was actually built, not what it remembered building.
+The Advisor reads the inventory before planning any next phase. It reads what was actually built, not what it remembered building. This also helps track nay drift that may have happened
 
 **The critical role separation this enforces:**
 
@@ -245,7 +272,7 @@ Once the naming convention, changelog, and inventory were in place, the daily rh
 1. Open current site in browser
 2. Brain dump: what needs to change, in order of appearance on page
 3. Advisor reads inventory → updates lock files if any decisions changed → generates spec
-4. Human reviews spec (this is the quality gate — catch ambiguities before they become broken code)
+4. Human reviews spec (this is the quality gate — catch ambiguities or contradictions before they become broken code)
 5. Copy to executor workspace: prompt header + lock files + spec
 6. Executor implements
 7. Verify in browser
@@ -254,12 +281,6 @@ Once the naming convention, changelog, and inventory were in place, the daily rh
 10. Run inventory prompt → updated state snapshot
 11. Pass inventory back to Advisor
 12. Iterate
-
-**Time per iteration:** 30–60 minutes  
-**Accuracy:** 99%  
-**Cognitive load:** Low — the system handled state management
-
-The transformation: from frustrating whack-a-mole to systematic, pleasurable work.
 
 ---
 
@@ -297,21 +318,20 @@ Adding a blog post → content/blog/[slug].md
 Changing colors → LOCK-design.md, then create a spec
 ```
 
-Both a human reading it and an AI being asked "where do I change X?" can navigate the codebase without archaeology.
+Both a human reading it and an AI being asked "where do I change X?" can navigate the codebase without wasting brain power or tokens.
 
 ### Answer Engine Optimization Workshop
 
-A structured prompt that leads the client through a series of questions about their business — the specific questions prospects ask, industry terminology, common misconceptions — and outputs specific content recommendations tailored to their actual services.
+A structured prompt that leads the client through a series of questions about their business:  The specific questions prospects ask, industry terminology, common misconceptions, and outputs specific content recommendations tailored to their actual services.
 
 The AI analysis built the framework. The client's answers populate it with real content.
 
 ### The Skill File
 
-Most importantly: the client received the Lock File Workflow system itself — `SKILL.md`, the complete methodology.
+Most importantly: the client received the Lock File Workflow system itself: `SKILL.md`, the complete methodology.
 
 The client is a developer. Handing them the system rather than just the deliverable means they can continue iterating without depending on me. They understand not just what was built but how to keep building it.
 
-That's empowerment, not just delivery.
 
 ---
 
@@ -321,59 +341,113 @@ That's empowerment, not just delivery.
 
 **Context engineering outlasts prompt engineering.** A well-crafted prompt works for one interaction. A well-maintained lock file works across every interaction in a project's lifetime. The leverage is an order of magnitude higher.
 
-**Domain siloing prevents cross-contamination.** When constraints live in a single file, a change to one domain can trigger reconsideration of adjacent domains. Separate files make domain boundaries explicit and enforce them structurally.
+**Domain silos prevents cross-contamination.** When constraints live in a single file, a change to one domain can trigger reconsideration of adjacent domains. It also becomes harder to manage.   Separate files make domain boundaries explicit and enforce them structurally.
 
-**Role separation prevents drift.** Planning and execution require incompatible cognitive modes. An executor that starts planning drifts. An advisor that starts implementing loses objectivity. The system works because neither actor can cross into the other's domain.
+**Role separation prevents drift.** Planning and execution require incompatible cognitive modes. An executor that starts planning drifts. An advisor that starts implementing loses objectivity and scope. The system works because neither actor can cross into the other's domain.
 
-**Feedback loops create trust.** The changelog and inventory system means actual state is always known — by the Advisor, by the human, and in theory by anyone who needs to audit the project. The forensic record existed as insurance, not because debugging required it.
+**Feedback loops create trust.** The changelog and inventory system means actual state is always known by the Advisor, Executor, and human. The changelog record exists as insurance.
 
-**Good systems make unreliable tools reliable.** The core insight: I didn't become a JavaScript expert. I built a system that extracted reliable JavaScript from an AI that could have gone anywhere. That's not a coding skill — it's an engineering disposition. From carpentry: the quality of the jig determines the quality of the joint, not the quality of the hand.
+**Good systems make unreliable tools reliable.** The core insight: I didn't become a JavaScript expert. I built a system that extracted reliable JavaScript from an AI that could have gone anywhere.
 
 ---
 
 ## 10. Reusable Prompts
 
+These prompts are generic versions of what the lock-file skill will create for you specifically for your project: Website inventory looks different than Mobile App inventory.  You can use these prompts outside the system for your own use but its a good idea to iterate over them to make them more useful to your own context. 
+
 ### Comprehensive Analysis Prompt
 
 ```
-Provide a comprehensive analysis of [subject].
+[YOUR ANALYSIS REQUEST]
 
-Requirements:
-- Explain all trade-offs
-- Reference current best practices
-- Cite research and studies where applicable
-- Consider [specific context — e.g., how answer engines are reshaping discovery]
-- Organize by priority
-- Include specific, actionable recommendations
+Requirements for your response:
+- Do NOT summarize or compress. I need exhaustive depth, not executive summary.
+- For each point, expand with: implementation details, edge cases, failure modes, historical context, counterarguments
+- When you identify a risk or tradeoff, explain the second-order consequences
+- If you mention a best practice, explain when it doesn't apply
+- Prioritize completeness over brevity - I will do my own compression later
+
+Minimum length: [SPECIFY - e.g., "1500 words" or "5 detailed paragraphs per section"]
 ```
 
 ### Changelog Generation Prompt
 
 ```
-Generate a detailed changelog for the changes just made.
+# Task: Generate a Changelog Entry
 
-Required format:
-- Git commit hash: [hash]
-- For each file modified:
-  - Filename and path
-  - Line numbers changed
-  - What changed
-  - Why it changed (reference the spec)
+You are an implementation executor. Generate a forensic changelog documenting 
+what changed, where, and why — with enough detail to reconstruct decisions 
+without reading the code.
 
-Be specific and thorough. Every change should be traceable.
+**Before starting, confirm you have:**
+- The diff or list of changed files
+- The spec file(s) that directed this work
+- The relevant lock files
+- Today's actual date and the git commit hash
+
+**Save as:** `CHANGELOG-[phase-name]-[YYYY-MM-DD].md` in `/docs/`
+
+---
+
+## Format
+
+**Date**: [today's actual date]
+**Commit**: [git hash]
+**Spec**: [spec filename]
+
+### Summary
+2–3 sentences: what was the goal, what is now true that wasn't before.
+
+### Changes by File
+For each file: path, lines modified, what changed, and which spec line or lock 
+file required it. Paste before/after for non-obvious changes.
+
+### Deviations
+Anything done outside spec scope, or decisions made without explicit instruction. 
+If none, write "No deviations."
+
+---
+
+**Rules:** Use today's actual date. Tie every change to a source (spec or lock). 
+Flag gaps rather than filling them with assumptions. 
 ```
 
 ### Inventory Generation Prompt
 
 ```
-Generate a current state inventory of [project].
+# Task: Generate a State Inventory
 
-Include:
-- [Domain-specific structure — e.g., for web: page structure, component organization, navigation, key features, routing logic]
-- Placeholder content marked explicitly as [PLACEHOLDER]
-- Recent changes incorporated
+You are an implementation executor. Generate a snapshot of the current project 
+state accurate enough for an advisor to plan the next phase without reading 
+the codebase directly.
 
-Format for readability by both human and AI. Save as INVENTORY-[type]-[TODAY'S DATE].md.
+**Before starting, confirm you have access to:**
+- The full project file tree
+- Today's actual date
+
+**Save as:** `INVENTORY-[type]-[YYYY-MM-DD].md` in project root
+
+---
+
+## Format
+
+**Date**: [today's actual date]
+**Type**: [e.g. schema, content, components, pins]
+
+### Structure
+List all meaningful entities in the project (files, components, tables, routes, 
+pins — whatever is domain-relevant). For each: name, location, current state, 
+and any placeholders or incomplete sections.
+
+### Gaps and Placeholders
+Anything marked TODO, placeholder, stub, or otherwise unfinished. Be explicit — 
+do not omit or normalize incomplete work.
+
+---
+
+**Rules:** Use today's actual date in both the header and filename. Extract exact 
+names and paths — do not paraphrase. Mark empty sections as [Not implemented] 
+rather than skipping them. This is a snapshot, not a summary.
 ```
 
 ---
@@ -382,17 +456,17 @@ Format for readability by both human and AI. Save as INVENTORY-[type]-[TODAY'S D
 
 ```
 /project-root/
-├── 00-START-HERE.md
-├── LOCK-design.md
-├── LOCK-content.md
-├── LOCK-architecture.md
-├── SPEC-[phase-name].md
-├── PROMPT-claude-code-header.md
-├── PROMPT-generate-inventory.md
-├── PROMPT-changelog.md
-├── HISTORY-executive-timeline.md
-├── INVENTORY-[type]-[date].md
-└── CHANGELOG-[date]-[gitN].md
+├── 00-START-HERE.md                    # Advisor creates, Executor reads
+├── LOCK-design.md                      # Advisor owns
+├── LOCK-content.md                     # Advisor owns
+├── LOCK-architecture.md                # Advisor owns
+├── SPEC-[phase-name].md                # Advisor creates per phase
+├── HISTORY-executive-timeline.md       # Advisor append-only log
+├── PROMPT-[tool]-header.md             # Advisor writes, Executor loads each session
+├── PROMPT-generate-inventory.md        # Advisor writes, Executor runs
+├── PROMPT-changelog.md                 # Advisor writes, Executor runs
+├── INVENTORY-[type]-[date].md          # Executor generates, Advisor reads
+└── CHANGELOG-[date]-[gitN].md          # Executor generates
 ```
 
 ---

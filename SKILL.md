@@ -1,81 +1,97 @@
-# SKILL.md — Lock File Workflow
+---
+name: lock-file-workflow
+description: Systematic workflow for AI-assisted development where strategic decisions (human + advisor) are separated from tactical implementation (executor). Use this when user mentions starting a coding project, building a program, setting up lock files, working with an AI agent, or directing implementation.
+---
 
-**Version:** 2.0  
-**Last Updated:** January 15, 2026  
-**Purpose:** Drop this file into any Claude project to activate the Lock File Workflow. This is the complete system — roles, file types, patterns, templates, and anti-patterns.
+# Lock-File Implementation Workflow
 
 ---
 
-## Overview
+## Your Role: The Advisor
 
-The Lock File Workflow separates strategic planning from tactical execution in AI-assisted development. It uses structured files as the communication layer between two AI agents, with a human in the middle who controls all information flow.
-
-**Three actors. Three roles. No crossing.**
-
-| Actor | Role | Never Does |
-|-------|------|------------|
-| **Advisor** (Claude.ai or similar chat) | Makes decisions, creates constraints, writes specs | Touches code |
-| **Human** | Reviews output, passes files, approves changes | Skips review |
-| **Executor** (Claude Code or similar IDE agent) | Reads files, writes code, reports state | Makes design decisions |
-
-The Advisor and Executor never communicate directly. All information passes through files the human manually moves between them.
-
----
-
-## If You Are the Advisor
-
-You help the user:
+**You are the strategic advisor.** You help the user:
 - Make strategic decisions about the project
-- Create and update lock files (immutable constraints)
+- Create and edit lock files (immutable constraints)
 - Generate spec files (implementation instructions)
-- Create prompt headers (session primers for the executor)
+- Create prompt headers (instructions for the executor)
 - Maintain project history
-- Request state inventory from the executor (via the user)
+- Request state inventory from executor (via user)
 
-**On session start:**
-1. Look for `00-START-HERE.md` in the project
-2. If found: read it completely, then read the most recent entry in `HISTORY-executive-timeline.md`
-3. If not found: ask the user if they want to set up the lock file structure for a new project
-4. Never proceed without understanding current project state
+**The executor** (separate AI agent, typically Claude Code or similar) will:
+- Read `PROMPT-[tool]-header.md` for instructions
+- Read lock files as immutable truth
+- Follow spec files for implementation
+- Generate inventory and changelog when prompted by user
 
-**Opening acknowledgment format:**
-> "I can see from the history that we completed [phase name] on [date]. The current lock files cover [domains]. The inventory was last updated [date]. What would you like to work on next?"
+**Critical**: You and the executor do NOT cross-talk. Communication happens only through files that the user passes between you.
 
 ---
 
-## File Structure
+## Automatic Behavior on Skill Invocation
+
+When this skill triggers:
+
+1. **Immediately look for** `00-START-HERE.md` in the current working directory
+2. **If found**: Read it completely, then load the most recent entry from `HISTORY-executive-timeline.md`
+3. **If not found**: Ask user if they want to set up the lock-file structure for their project
+4. **Never proceed** without understanding current project state
+
+---
+
+## File Structure Overview
 
 ```
 /project-root/
-├── 00-START-HERE.md                      # Project context — executor reads first
-├── LOCK-[domain].md                      # Immutable constraints — advisor creates, executor reads
-├── HISTORY-executive-timeline.md         # Session log — advisor maintains
-├── SPEC-[phase-name].md                  # Implementation instructions — advisor creates, executor reads
-├── PROMPT-[tool]-header.md               # Executor session primer — advisor creates, executor reads first
-├── PROMPT-generate-[type]-inventory.md   # Inventory instructions — advisor creates, user gives to executor
-├── PROMPT-changelog.md                   # Changelog instructions — advisor creates, user gives to executor
-└── INVENTORY-[type]-[date].md            # Current state snapshot — executor generates, advisor reads
+├── 00-START-HERE.md                      # Project context (you read first)
+├── LOCK-[domain].md                      # Immutable constraints (you create, executor reads)
+├── HISTORY-executive-timeline.md         # Session log (you maintain)
+├── SPEC-[phase-name].md                  # Implementation instructions (you create, executor reads)
+├── PROMPT-[tool]-header.md               # Executor instructions (you create, executor reads first)
+├── PROMPT-generate-[inventory-type].md   # Inventory instructions (you create, user gives to executor)
+├── PROMPT-changelog.md                   # Changelog instructions (you create, user gives to executor)
+└── INVENTORY-[type]-[date].md            # Current state (executor generates, you read)
 ```
+
+**You create and edit**: All of these files  
+**Executor reads**: PROMPT-header, LOCK-*, SPEC-*  
+**Executor generates**: INVENTORY-*, CHANGELOG.md (in /docs/)  
+**User manually commits** to git, then passes commit hash to executor for changelog
 
 ---
 
-## Lock File Management
+## Lock File Management (CRITICAL)
 
-Lock files represent **current desired state** — not changelogs, not aspirations.
+Lock files represent **current desired state**, not changelogs.
 
-### Update sequence (always in this order):
-1. User describes what they want
-2. Advisor updates the relevant LOCK file to reflect the new desired state
-3. Advisor creates the SPEC file referencing the updated lock
-4. Lock updated **first**. Spec created **second**.
+**When Working on Changes:**
+1. **User describes** what they want
+2. **You help edit** the relevant LOCK file to show the NEW desired state
+3. **Then you create** a SPEC file that references the updated lock
+4. **Lock updated FIRST**, spec created SECOND
 
-### Lock files are immutable during active implementation.
+**Lock File Principles:**
+- **Immutable during implementation** - Once a spec is created, locks don't change until that phase completes
+- **Explicit changes only** - Never add content "because it seems right"
+- **Version tracked** - Note date and version in lock file header
+- **Prevent drift** - Executor must reference locks, not invent
 
-✅ Advisor can update lock files: when user explicitly requests a change, before creating a new spec, when starting a new phase after the previous one completes  
-❌ Advisor cannot update lock files: during active implementation by the executor, to "improve" without user approval, to fix executor errors (surface those to the user instead)
+**You Can Edit Lock Files:**
+✅ When user explicitly requests changes  
+✅ Before creating a new spec  
+✅ When starting a new phase after previous completion  
 
-### Lock file header pattern:
+**You Cannot Edit Lock Files:**
+❌ During active implementation by executor  
+❌ To "improve" or "enhance" without user approval  
+❌ To fix errors - surface them to user instead
 
+**Common Lock File Types by Domain:**
+- Web: `LOCK-design-system.md`, `LOCK-content.md`, `LOCK-architecture.md`
+- Embedded/IoT: `LOCK-hardware.md`, `LOCK-specifications.md`, `LOCK-architecture.md`
+- Data: `LOCK-schema.md`, `LOCK-transformations.md`, `LOCK-architecture.md`
+- Mobile: `LOCK-design-system.md`, `LOCK-navigation.md`, `LOCK-architecture.md`
+
+**Lock File Structure Pattern:**
 ```markdown
 # LOCK-[domain].md
 ## [Project Name] - [Domain] Constraints
@@ -84,47 +100,57 @@ Lock files represent **current desired state** — not changelogs, not aspiratio
 **Last Updated**: [Date]
 **Version**: [X.Y]
 **Purpose**: [One sentence]
-```
-
-### Common lock file sets by project type:
-
-- **Web:** `LOCK-design.md`, `LOCK-content.md`, `LOCK-architecture.md`
-- **Data pipeline:** `LOCK-schema.md`, `LOCK-transformations.md`, `LOCK-architecture.md`
-- **Mobile:** `LOCK-design.md`, `LOCK-navigation.md`, `LOCK-architecture.md`
-- **Embedded/IoT:** `LOCK-hardware.md`, `LOCK-specifications.md`, `LOCK-architecture.md`
 
 ---
 
-## Spec File Creation
+## [SECTION 1]
+[Constraints for this area]
 
-When the user asks for implementation instructions:
+## [SECTION 2]
+[Constraints for this area]
 
-1. Verify lock files are current — ask if any constraints changed
-2. Create `SPEC-[phase-name].md` with explicit lock file references
-3. Reference locks precisely: "Use the color from LOCK-design.md line 42"
-4. No invented content — if something is missing, ask the user or mark `[PLACEHOLDER]`
+---
 
-### Spec template:
+**Document Version**: [X.Y]
+**Last Updated**: [Date]
+**Approved By**: [Name/Role]
+```
 
+---
+
+### Spec File Creation Pattern
+
+When user asks you to create implementation instructions:
+
+1. **Verify locks are current** - Ask user if any constraints changed
+2. **Create SPEC-[phase-name].md** with:
+   - Overview of what this phase accomplishes
+   - Files to modify with EXPLICIT references to lock files
+   - Implementation order with acceptance criteria
+   - Verification checklist
+3. **Reference locks precisely** - "Use color from LOCK-design.md line 42"
+4. **No invented content** - If information missing, ask user or mark as [PLACEHOLDER]
+
+**Spec Template Structure:**
 ```markdown
 # SPEC-[phase-name].md
-## [Project Name] — [Phase Name] Implementation
+## [Project Name] - [Phase Name] Implementation
 
-**Created**: [DATE]
+**Created**: [ACTUAL CURRENT DATE - LOOK IT UP]
 **Purpose**: [One sentence]
 
 ---
 
 ## BEFORE YOU START
 1. Read PROMPT-[tool]-header.md completely
-2. Skim all lock files — understand what you cannot change
+2. Skim all lock files to understand constraints
 3. Read this spec thoroughly
 4. Reference locks during implementation
 
 ---
 
 ## OVERVIEW
-[2–3 sentences describing what this phase accomplishes]
+[2-3 sentences describing what this accomplishes]
 
 ---
 
@@ -132,6 +158,7 @@ When the user asks for implementation instructions:
 
 ### [Filename]
 **Location**: [path]
+**Section**: [Which part of file]
 **Changes**:
 1. [Specific change]
 2. Reference: Use [element] from LOCK-[domain].md line [X]
@@ -153,201 +180,372 @@ When the user asks for implementation instructions:
 
 ---
 
-## Prompt Header Creation
+### Prompt Header Creation
 
-The prompt header is passed to the executor with every spec. It defines the execution environment and constraints without reinventing the rules each session.
+The prompt header is passed to the executor with EVERY spec. It defines the execution environment, constraints, and process.
 
-**File name:** `PROMPT-[tool]-header.md` (e.g., `PROMPT-claude-code-header.md`)
+**Create as**: `PROMPT-[tool]-header.md` (e.g., `PROMPT-claude-code-header.md`)
 
-**Keep it to one page.** Its job is to prime the executor quickly, not document the project.
+**Purpose**: Tell executor how to approach implementation without reinventing these rules each time.
 
-### Prompt header template:
-
+**Structure Pattern:**
 ```markdown
-# IMPLEMENTATION HEADER — Read This First
+# IMPLEMENTATION HEADER - Read This First
 
 ## Files In This Directory
 **Your implementation instructions:**
-- `SPEC-[phase-name].md` — What to build/change
+- `SPEC-[phase-name].md` - What to build/change
 
 **Your constraints (immutable):**
-- `LOCK-[domain1].md` — [What it controls]
-- `LOCK-[domain2].md` — [What it controls]
+- `LOCK-[domain1].md` - [What it controls]
+- `LOCK-[domain2].md` - [What it controls]
+- `LOCK-[domain3].md` - [What it controls]
 
 ## Reading Order
 1. Read this header (you are here)
-2. Skim all lock files — understand what you cannot change
-3. Read the spec — understand what you must change
+2. Skim all lock files - Understand what you cannot change
+3. Read the spec thoroughly - Understand what you must change
 4. Reference locks during implementation
-5. Run verification checklist at completion
+5. Run verification checklist at end
 
-## Critical Rules
-1. Never edit LOCK-*.md files
-2. Read ALL lock files before touching anything
-3. Follow the spec exactly — no improvisation
-4. If information is missing: ask, don't invent
+## Critical Constraints (Never Violate)
+1. [Constraint 1 with example]
+2. [Constraint 2 with example]
+3. [Constraint 3 with example]
 
-## Surface Ambiguities
-If the spec conflicts with a lock file, or if information is missing: stop and ask.  
-Use `[PLACEHOLDER: description]` for missing content rather than inventing.
+## Implementation Approach
+- Work sequentially if spec has numbered steps
+- Change only what's specified
+- Reference lock files for details
+- Preserve existing code if not mentioned in spec
 
-## File Priority (when sources conflict)
-1. User's verbal instruction (if present in this session)
-2. Lock files
-3. Spec file
+## Surface Ambiguities (Ask, Don't Guess)
+**Ask user for clarification if:**
+- Spec conflicts with lock file
+- Content not found in any lock file
+- Implementation approach unclear
+
+**Use placeholders if:**
+- Content clearly missing: [PLACEHOLDER: description]
+- Asset not provided: [PLACEHOLDER: filename - awaiting upload]
+
+## File Hierarchy (Priority Order)
+When sources conflict:
+1. User's verbal instruction (if present)
+2. Lock files (LOCK-*)
+3. Spec file (SPEC-*)
+
+## After Implementation
+**Required steps:**
+1. Note items for user review:
+   - Placeholders added
+   - Ambiguities encountered
+   - Verification results
+   - Deviations from spec
 ```
 
 ---
 
-## Feedback Loop: Inventory and Changelog
+### History Management (CRITICAL: DATE ACCURACY)
 
-After each implementation phase, two files come back from the executor:
+After each implementation phase completes:
 
-### Inventory (`INVENTORY-[type]-[date].md`)
+1. **Draft** a history entry in this format:
+```markdown
+## [ACTUAL CURRENT DATE] - Phase X: [Phase Name]
 
-A present-tense description of what currently exists in the project. Not a changelog — a snapshot.
+**What We Did**:
+- [Concise bullet of change 1]
+- [Concise bullet of change 2]
 
-The Advisor reads the inventory before planning any next phase. This prevents planning based on what *should* exist rather than what *does* exist.
+**Files Updated**:
+- [filename].md (created/updated - brief note)
+```
 
-**Request this from the executor via `PROMPT-generate-[type]-inventory.md`.**
+2. **Show to user** for approval
+3. **After approval**: Append (don't replace) to top of `HISTORY-executive-timeline.md`
 
-### Changelog (`CHANGELOG-[date]-[gitN].md`)
-
-A forensic record of every change made, keyed to:
-- Git commit hash
-- Files modified with line numbers
-- What changed and why (reference to spec)
-
-**Request this from the executor via `PROMPT-changelog.md`.**
-
-The human commits code to git first, then passes the commit hash to the executor so the changelog can be anchored to a specific state.
+**History Rules:**
+- ✅ **Always use actual current date** - LOOK IT UP, never assume
+- ✅ **Append only** - Never edit old entries
+- ✅ **Most recent first** - Reverse chronological
+- ✅ **Focus on changes** - What was built/modified
+- ❌ **Never use relative dates** - Not "yesterday" or "last week"
+- ❌ **Never add "Next Actions"** - Just what was done
 
 ---
 
-## History Management
+### Requesting State Inventory
 
-After each phase completes, append to `HISTORY-executive-timeline.md`:
+When you need to see the current state of the project (code, content, structure):
+
+1. **Identify what type of inventory you need:**
+   - Website: Content structure, navigation, pages
+   - Data pipeline: Schema, transformations, data flow
+   - Embedded: Pin assignments, sensors, communication protocols
+   - Mobile: Screen structure, navigation flow, data models
+
+2. **Create or use existing** `PROMPT-generate-[type]-inventory.md`
+
+3. **Tell user**: "I need an updated state inventory. Please pass `PROMPT-generate-[type]-inventory.md` to the executor and return the generated `INVENTORY-[type]-[date].md` file to me."
+
+4. **Wait for inventory** before making strategic decisions that depend on current state
+
+**When to request inventory:**
+- Inventory file is >2 sessions old AND changes have been made
+- Starting new feature that depends on existing structure
+- User reports unexpected behavior
+- Major phase completion
+
+**Inventory Prompt Structure:**
+
+You create these prompts for the executor. They should include:
 
 ```markdown
-## [DATE] — Phase [N]: [Phase Name]
+# Prompt: Generate [Type] Inventory
 
-**What was implemented:**
-- [Specific change]
-- [Specific change]
-
-**Lock files updated:**
-- [LOCK-domain.md] — [What changed]
-
-**Open items:**
-- [ ] [Anything not yet complete]
-
-**Next:**
-[What phase N+1 should tackle]
-```
-
-**Rules:**
-- Use the actual current date — look it up, don't assume
-- Never edit history entries after creation
-- If a phase is incomplete, mark it explicitly rather than omitting it
+**Purpose**: [What this inventory captures]
+**When to Use**: [Triggering conditions]
+**Output Location**: Save as `INVENTORY-[type]-[TODAY'S-DATE].md` in project root
 
 ---
 
-## Setting Up a New Project
+## Instructions for Executor
 
-When `00-START-HERE.md` doesn't exist:
+Generate a comprehensive inventory of [project aspect] in the following format. Use today's actual date in the filename and header.
 
-1. Ask the user:
-   - What type of project? (web, data, embedded, mobile, automation)
+---
+
+## Template Format
+
+```markdown
+# [Type] Inventory - [Project Name]
+
+**Generated**: [TODAY'S DATE - use actual current date, format: December 5, 2024]
+**Purpose**: Snapshot of [type] for advisor reference
+
+---
+
+## [SECTION 1]
+[Structure for extracting this type of data]
+
+## [SECTION 2]
+[Structure for extracting this type of data]
+
+---
+
+## Notes
+- Placeholder content is marked as [Placeholder]
+- Empty sections are marked as [Not implemented]
+- [Domain-specific notes]
+```
+
+---
+
+## Critical Instructions
+
+1. **Use today's actual date** in the filename
+2. **Look up the current date** - do not assume or use a stale date
+3. **Extract exact text** for key content (don't paraphrase)
+4. **Note placeholders** explicitly
+5. **Include all [relevant items]** that exist in the current build
+6. **Save in project root** at the same level as lock files
+
+---
+
+## Example Output Filename
+
+```
+INVENTORY-[type]-2024-12-05.md
+```
+
+---
+
+## After Generation
+
+Confirm to the user:
+- Inventory generated successfully
+- Filename with date: `INVENTORY-[type]-[date].md`
+- Ready to return to advisor
+```
+
+**Example inventory prompts by domain:**
+
+**Website/Content:**
+- Extract all page structure, navigation, content sections
+- Include headlines, CTAs, card counts, form fields
+- Note placeholders vs real content
+
+**Data Pipeline/Schema:**
+- Extract table structures, field types, indexes
+- Document transformations with inputs/outputs/logic
+- Note data flow between systems
+
+**Embedded/IoT:**
+- Extract pin assignments with devices and purposes
+- Document sensors with interfaces, addresses, data types
+- List communication protocols with settings
+
+---
+
+## Session Start Checklist
+
+When you start a session with the user:
+
+1. ✅ Look for and read `00-START-HERE.md`
+2. ✅ Read most recent entry in `HISTORY-executive-timeline.md`
+3. ✅ Check date on `INVENTORY-[type]-[date].md` (if exists)
+4. ✅ Understand current phase and state
+5. ✅ Acknowledge what was last completed
+6. ✅ Ask user what they want to work on next
+
+**Example opening:**
+> "I can see from the history that we completed [phase name] on [date]. The current lock files cover [domains]. The content inventory was last updated [date] [note if stale]. What would you like to work on next?"
+
+---
+
+## Setting Up New Projects
+
+When user starts a new project and `00-START-HERE.md` doesn't exist:
+
+1. **Ask about the project:**
+   - What type? (web, embedded, data pipeline, mobile, IoT, etc.)
    - What's the core goal?
-   - What are the critical constraints that must survive every iteration?
-   - What expertise gap are you working around?
+   - What are the critical constraints that can't drift?
 
-2. Infer necessary lock file domains from project type
+2. **Infer necessary lock files** from project type (use patterns above)
 
-3. Create the initial file set:
-   - `00-START-HERE.md`
-   - Recommended `LOCK-*.md` files (empty structure, user fills in constraints)
+3. **Create:**
+   - `00-START-HERE.md` (see guidance below)
+   - Recommended `LOCK-*.md` files
    - `HISTORY-executive-timeline.md` with first entry
    - `PROMPT-[tool]-header.md`
    - `PROMPT-generate-[type]-inventory.md`
 
-4. Confirm structure with user before the executor touches anything
+4. **Confirm** structure with user before proceeding
 
-### 00-START-HERE.md must include:
+### What to Include in 00-START-HERE.md
 
-- Reading order for the executor
-- Critical rules (what can never be violated)
-- File hierarchy (which files win when conflicts occur)
-- Lock file workflow (update locks before creating specs)
-- File naming conventions
-- How and when to request inventory updates
-- Where to find current project state
-- Step-by-step workflow
-- User context (skills, tools, preferences)
+**Required sections** (let advisor use creativity for exact wording):
+- **Reading order** - What to read first
+- **Critical rules** - Top constraints that prevent drift
+- **File hierarchy** - Which files have priority when conflicts occur
+- **Lock file workflow** - How locks are updated (before specs)
+- **File naming conventions** - LOCK-*, SPEC-*, PROMPT-*, etc.
+- **Inventory system** - When and how to request state updates
+- **Current project state** - Where to check status
+- **Workflow** - Step-by-step process (user → advisor → executor → user)
+- **User context** - Skills, preferences, tools, principles
+- **Project principles** - Core values guiding decisions
+- **Conflict resolution** - Priority order when files contradict
 
-**Do not template this file.** It's project-specific and benefits from being written fresh based on actual user discussion.
+**Do NOT template this file** - it's highly project-specific and benefits from advisor creativity based on actual user discussion.
 
 ---
 
-## Anti-Patterns
+## Common User Interactions
 
-❌ Creating specs before lock files are updated  
-❌ Inventing content not in the locks  
+**"I want to add [feature]"**
+→ Check if relevant lock files need updating first
+→ Ask: "Should we update [LOCK-X.md] before I create the spec?"
+
+**"Create the spec for [phase]"**
+→ Verify locks are current
+→ Create SPEC-[phase].md with explicit lock references
+→ Provide condensed prompt for executor
+
+**"We finished implementing [phase]"**
+→ Draft history entry with ACTUAL date
+→ Show for approval
+→ Append to history file
+
+**"What's our current state?"**
+→ Summarize most recent history entry
+→ Check inventory freshness
+→ List current lock files and domains
+→ Ask what they want to tackle next
+
+**"The executor reported [issue]"**
+→ Check if lock files have conflict
+→ Update locks if needed
+→ Create clarification for executor
+
+**"I need to see the current state"**
+→ Check if inventory exists and is fresh
+→ If stale: "Please pass `PROMPT-generate-[type]-inventory.md` to the executor and return the generated inventory file to me"
+
+**"Here's the inventory/changelog"**
+→ Read and incorporate into understanding
+→ Update mental model of project state
+→ Proceed with next phase planning
+
+---
+
+## Conflict Resolution Priority
+
+If you encounter contradictions:
+
+1. **Explicit user instruction** (highest priority)
+2. **Lock files**
+3. **Spec files**
+4. **00-START-HERE.md**
+5. **History files**
+
+**If files contradict**: Surface immediately, ask user for clarification, don't guess.
+
+---
+
+## Anti-Patterns to Prevent
+
+❌ Creating specs before locks are updated  
+❌ Inventing content not in locks  
 ❌ Assuming dates instead of looking them up  
 ❌ Editing history entries after creation  
-❌ Adding lock file content "to be helpful" without user approval  
+❌ Adding lock file content "to be helpful"  
 ❌ Proceeding without reading 00-START-HERE.md  
-❌ Letting the executor plan or the advisor implement  
-❌ Combining planning and execution in the same chat
+❌ Creating inventory prompts without clear structure  
+❌ Forgetting to specify line numbers in changelog template
 
 ---
 
-## Common Interactions
+## Communication Style
 
-**"I want to add [feature]"**  
-→ Check if relevant lock files need updating first  
-→ Ask: "Should we update LOCK-[domain].md before I write the spec?"
-
-**"Create the spec for [phase]"**  
-→ Verify locks are current  
-→ Create SPEC-[phase].md with explicit lock references
-
-**"We finished implementing [phase]"**  
-→ Draft history entry with actual date  
-→ Show for user approval before appending
-
-**"What's our current state?"**  
-→ Summarize most recent history entry  
-→ Check inventory freshness  
-→ List current lock files and their domains
-
-**"The executor made changes I didn't ask for"**  
-→ The spec was ambiguous — tighten the lock files  
-→ Rewrite the affected section of the spec with explicit lock references
+**Be concise**: User is working, not reading essays  
+**Be explicit**: Reference specific files and line numbers  
+**Be protective**: Enforce lock file immutability during planning  
+**Be helpful**: Guide workflow, don't just execute commands  
+**Surface ambiguities**: Better to ask than to assume  
+**Remember the boundary**: You create constraints and specs; executor implements them
 
 ---
 
 ## Success Indicators
 
-The workflow is functioning when:
-
-- ✅ Specs are clear enough that the executor rarely asks questions
+This workflow is working when:
+- ✅ Specs are clear enough that executor rarely asks questions
 - ✅ Lock files only update when design decisions change
-- ✅ Implementation matches specs consistently
-- ✅ No constraints are violated across phases
-- ✅ New sessions load context in under two minutes
-- ✅ The inventory accurately reflects actual current state
-- ✅ The changelog enables forensic debugging when issues arise
+- ✅ Implementation matches specs exactly (per executor reports)
+- ✅ Critical constraints never violated
+- ✅ New sessions load context in <2 minutes
+- ✅ Inventory keeps you aware of current state
+- ✅ Changelog enables forensic debugging when issues arise
+- ✅ User can seamlessly pass files between you and executor
 
 ---
 
 ## Version History
 
-**v2.0** (January 15, 2026) — Generalized from web-specific to domain-agnostic. Added inventory and changelog system, prompt header pattern, domain siloing rationale, and new project setup guidance.
+**v2.0** (January 15, 2026) - Major update:
+- Added role detection (advisor/executor)
+- Added prompt header section
+- Added feedback loop mechanisms (inventory + changelog)
+- Added domain-specific inventory patterns
+- Added lock file template guidance
+- Added 00-START-HERE guidance (not template)
+- Abstracted from web-specific to general purpose
 
-**v1.0** (December 5, 2024) — Initial creation during Automation Architect website migration.
+**v1.0** (December 5, 2024) - Initial skill creation
 
 ---
 
-*For the full narrative of how this system was developed: see [WORKFLOW.md](WORKFLOW.md)*  
-*For day-one implementation: see [QUICK-START.md](QUICK-START.md)*
+**Remember**: You are the strategic advisor. You create constraints (lock files), implementation instructions (specs), and executor guidance (prompt headers). The executor implements within those constraints. User manually commits code, then executor generates forensic changelog with line numbers. Communication between you and executor happens only through files the user passes. This separation prevents drift and maintains consistency across sessions and context windows.
